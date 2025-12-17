@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勾股定理交互演示 - 教学专用版</title>
+    <style>
+        :root {
+            --color-a: #1976D2; /* 蓝色 */
+            --color-b: #D32F2F; /* 红色 */
+            --color-c: #7B1FA2; /* 紫色 */
+            --bg-color: #F5F7FA;
+            --panel-bg: #FFFFFF;
+            --text-main: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部导航 */
+        header {
+            background: #fff;
+            padding: 12px 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* 主区域布局 */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 左侧画板 */
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            background-color: #fff;
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* 右侧控制栏 */
+        .sidebar {
+            width: 300px;
+            background: var(--panel-bg);
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            box-shadow: -2px 0 12px rgba(0,0,0,0.03);
+            z-index: 5;
+            overflow-y: auto;
+        }
+
+        /* 控制组件 */
+        .control-section {
+            background: #fff;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #555;
+        }
+        
+        #slider-a { accent-color: var(--color-a); }
+        #slider-b { accent-color: var(--color-b); }
+
+        /* 按钮样式 */
+        .toggle-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .toggle-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .toggle-btn.active {
+            background-color: #2e7d32;
+            color: #fff;
+            border-color: #2e7d32;
+        }
+
+        /* 隐藏的计算面板 */
+        .calc-panel {
+            display: none; /* 默认隐藏 */
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .math-row {
+            font-family: "Times New Roman", serif;
+            font-size: 1.3rem;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 5px;
+        }
+        .math-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-box {
+            margin-top: 10px;
+            padding: 8px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* 辅助文字颜色 */
+        .txt-a { color: var(--color-a); }
+        .txt-b { color: var(--color-b); }
+        .txt-c { color: var(--color-c); }
+
+        /* 底部提示 */
+        .footer-hint {
+            margin-top: auto;
+            font-size: 0.8rem;
+            color: #999;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>勾股定理验证 (Pythagorean Theorem)</h1>
+</header>
+
+<div class="main-container">
+    <div class="canvas-area" id="canvas-wrapper">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <div class="sidebar">
+        <!-- 1. 参数调整 -->
+        <div class="control-section">
+            <div class="section-title">调整边长 (Adjust)</div>
+            
+            <div class="input-group">
+                <div class="label-row">
+                    <span class="txt-a">直角边 a</span>
+                    <span id="display-a">3</span>
+                </div>
+                <input type="range" id="slider-a" min="3" max="10" step="1" value="3">
+            </div>
+
+            <div class="input-group">
+                <div class="label-row">
+                    <span class="txt-b">直角边 b</span>
+                    <span id="display-b">4</span>
+                </div>
+                <input type="range" id="slider-b" min="3" max="10" step="1" value="4">
+            </div>
+        </div>
+
+        <!-- 2. 计算展示开关 -->
+        <button class="toggle-btn" id="toggle-calc-btn">
+            <span>👁️ 显示验证计算</span>
+        </button>
+
+        <!-- 3. 计算面板 (默认隐藏) -->
+        <div class="calc-panel" id="calc-content">
+            <div class="section-title">数据验证 (Calculation)</div>
+            
+            <div class="math-row">
+                <span class="txt-a">a²</span>&nbsp;=&nbsp;<span id="val-a2">9</span>
+            </div>
+            <div class="math-row">
+                <span class="txt-b">b²</span>&nbsp;=&nbsp;<span id="val-b2">16</span>
+            </div>
+            <div class="math-row">
+                <span class="txt-a">a²</span>+<span class="txt-b">b²</span>&nbsp;=&nbsp;<span id="val-sum">25</span>
+            </div>
+            <div class="math-row">
+                <span class="txt-c">c²</span>&nbsp;=&nbsp;<span id="val-c2">25</span>
+            </div>
+            
+            <div class="result-box">
+                c = <span id="val-c">5</span>
+            </div>
+        </div>
+
+        <div class="footer-hint">
+            拖动滑块改变三角形大小<br>
+            每一个网格代表 1 个单位面积
+        </div>
+    </div>
+</div>
+
+<script>
+    // 画布与环境初始化
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const wrapper = document.getElementById('canvas-wrapper');
+
+    // UI 元素
+    const sliderA = document.getElementById('slider-a');
+    const sliderB = document.getElementById('slider-b');
+    const displayA = document.getElementById('display-a');
+    const displayB = document.getElementById('display-b');
+    
+    const btnToggle = document.getElementById('toggle-calc-btn');
+    const panelCalc = document.getElementById('calc-content');
+    
+    const valA2 = document.getElementById('val-a2');
+    const valB2 = document.getElementById('val-b2');
+    const valSum = document.getElementById('val-sum');
+    const valC2 = document.getElementById('val-c2');
+    const valC = document.getElementById('val-c');
+
+    // 核心参数
+    let a = 3;
+    let b = 4;
+    const gridSize = 40; // 网格单元像素大小
+
+    // 事件监听
+    window.addEventListener('resize', resizeCanvas);
+    
+    sliderA.addEventListener('input', (e) => {
+        a = parseInt(e.target.value);
+        displayA.textContent = a;
+        updateData();
+        draw();
+    });
+
+    sliderB.addEventListener('input', (e) => {
+        b = parseInt(e.target.value);
+        displayB.textContent = b;
+        updateData();
+        draw();
+    });
+
+    // 切换按钮逻辑
+    btnToggle.addEventListener('click', () => {
+        if (panelCalc.style.display === 'block') {
+            panelCalc.style.display = 'none';
+            btnToggle.classList.remove('active');
+            btnToggle.innerHTML = '<span>👁️ 显示验证计算</span>';
+        } else {
+            panelCalc.style.display = 'block';
+            btnToggle.classList.add('active');
+            btnToggle.innerHTML = '<span>🙈 隐藏验证计算</span>';
+        }
+    });
+
+    // 数据更新
+    function updateData() {
+        const a2 = a*a;
+        const b2 = b*b;
+        const sum = a2 + b2;
+        const c = Math.sqrt(sum);
+
+        valA2.textContent = a2;
+        valB2.textContent = b2;
+        valSum.textContent = sum;
+        valC2.textContent = sum; // 在勾股数情况下 c^2 是整数
+        valC.textContent = Number.isInteger(c) ? c : c.toFixed(3);
+    }
+
+    // 调整画布尺寸
+    function resizeCanvas() {
+        canvas.width = wrapper.clientWidth;
+        canvas.height = wrapper.clientHeight;
+        draw();
+    }
+
+    // 绘图主函数
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. 绘制网格背景
+        drawGrid();
+
+        // 2. 确定位置 (居中偏右下，保证左上空间给正方形)
+        // 寻找中心附近的格点作为直角点 C
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        // C点吸附到最近的网格点
+        const originX = Math.round(centerX / gridSize) * gridSize;
+        const originY = Math.round(centerY / gridSize) * gridSize;
+
+        // 根据正方形方向调整C点位置，确保图形整体视觉居中
+        // a正方形向左，c正方形向左上，所以把C点往右下挪一点
+        const Cx = originX + gridSize;
+        const Cy = originY + gridSize * 2;
+
+        // 定义三个顶点坐标
+        // Canvas坐标系：x向右，y向下
+        // C: 直角点
+        // A: 顶点 (在C上方) -> y 减小
+        // B: 右点 (在C右方) -> x 增加
+        
+        const pC = { x: Cx, y: Cy };
+        const pA = { x: Cx, y: Cy - a * gridSize };
+        const pB = { x: Cx + b * gridSize, y: Cy };
+
+        // 3. 绘制三个向外的正方形
+        
+        // 正方形 A (以a为边，向左翻)
+        drawPoly([
+            pC, pA, 
+            {x: pA.x - a*gridSize, y: pA.y}, 
+            {x: pC.x - a*gridSize, y: pC.y}
+        ], 'rgba(25, 118, 210, 0.15)', 'var(--color-a)'); // 蓝色
+
+        // 正方形 B (以b为边，向下翻)
+        drawPoly([
+            pC, pB, 
+            {x: pB.x, y: pB.y + b*gridSize}, 
+            {x: pC.x, y: pC.y + b*gridSize}
+        ], 'rgba(211, 47, 47, 0.15)', 'var(--color-b)'); // 红色
+
+        // 正方形 C (以c为边，向斜边外侧翻 - 右上方)
+        // 计算向外的法向量 (a, -b) * gridSize
+        // 向量 AB = (b, a)
+        // 垂直向量 = (a, -b)
+        const vecX = a * gridSize;
+        const vecY = -b * gridSize;
+
+        const pA_out = { x: pA.x + vecX, y: pA.y + vecY };
+        const pB_out = { x: pB.x + vecX, y: pB.y + vecY };
+
+        drawPoly([
+            pA, pB, pB_out, pA_out
+        ], 'rgba(123, 31, 162, 0.15)', 'var(--color-c)'); // 紫色
+
+        // 4. 绘制三角形本体 (实心白底，遮盖网格线，突出主体)
+        ctx.beginPath();
+        ctx.moveTo(pC.x, pC.y);
+        ctx.lineTo(pA.x, pA.y);
+        ctx.lineTo(pB.x, pB.y);
+        ctx.closePath();
+        ctx.fillStyle = '#FFFFFF'; 
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#333';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // 绘制直角标记
+        const s = 15;
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.moveTo(pC.x, pC.y - s);
+        ctx.lineTo(pC.x + s, pC.y - s);
+        ctx.lineTo(pC.x + s, pC.y);
+        ctx.stroke();
+
+        // 5. 绘制文字标注 (黑色)
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#000000'; // **关键修改：黑色文字**
+
+        // a边标注 (左侧)
+        ctx.fillText(`a = ${a}`, pC.x - 25, (pC.y + pA.y) / 2);
+
+        // b边标注 (下方)
+        ctx.fillText(`b = ${b}`, (pC.x + pB.x) / 2, pC.y + 25);
+
+        // c边标注 (斜边上方)
+        // 计算斜边中点，并稍微向外偏移
+        const midC = { x: (pA.x + pB.x)/2, y: (pA.y + pB.y)/2 };
+        ctx.fillText(`c = ${(Math.sqrt(a*a+b*b)).toFixed(2).replace('.00','')}`, midC.x + 15, midC.y - 15);
+    }
+
+    // 辅助函数：绘制多边形
+    function drawPoly(points, fill, strokeColorCode) {
+        // strokeColorCode 是 CSS 变量名，需要转换，这里为了简单直接用 fill 的颜色加深版或者根据边逻辑
+        // 解析 CSS 变量颜色稍微复杂，这里直接硬编码对应颜色的 hex 
+        let stroke = '#000';
+        if(strokeColorCode.includes('color-a')) stroke = '#1976D2';
+        if(strokeColorCode.includes('color-b')) stroke = '#D32F2F';
+        if(strokeColorCode.includes('color-c')) stroke = '#7B1FA2';
+
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+        ctx.closePath();
+        
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+    }
+
+    // 辅助函数：画网格
+    function drawGrid() {
+        ctx.beginPath();
+        ctx.strokeStyle = '#E0E0E0';
+        ctx.lineWidth = 1;
+        
+        for (let x = 0; x <= canvas.width; x += gridSize) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+        }
+        for (let y = 0; y <= canvas.height; y += gridSize) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+        }
+        ctx.stroke();
+    }
+
+    // 初始化
+    resizeCanvas();
+    updateData();
+
+</script>
+</body>
+</html>
